@@ -86,11 +86,11 @@ class MapMain extends React.Component<MapMainProps> {
     const ss = StyleSheet.create({ ...defaultMapStyle, ...this.props.styles });
     return (
       <div className={css(ss.mainMapContainer)}>
-        <img src={'images/inventorybg.png'} className={css(ss.backgroundImg)}/>
+        <img src={'images/inventorybg.png'} className={css(ss.backgroundImg)} />
         <ReactImageMagnify className={css(ss.mapContainer)} imageClassName={css(ss.map)}
-                           largeImage={largeImage} smallImage={smallImage}/>
+                           largeImage={largeImage} smallImage={smallImage} fadeDurationInMs={0} />
         <div className={css(ss.keyContainer)}>
-          <img className={css(ss.mapKey)} src={this.props.mapKey}/>
+          <img className={css(ss.mapKey)} src={this.props.mapKey} />
         </div>
       </div>
     );
