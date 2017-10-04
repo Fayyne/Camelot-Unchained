@@ -162,7 +162,7 @@ module.exports = {
       },
       browserify: {
         default: {
-          script: 'browserify tmpp/index.js -o build/js/hud.js --fast --noparse=FILE -u react -u react-dom -u jquery -u es6-promise -u camelot-unchained -u react-draggable -u react-redux -u react-select -u redux -u redux-thunk -t [ envify --NODE_ENV production ]',
+          script: 'browserify tmpp/src/index.js -o build/js/hud.js --fast --noparse=FILE -u react -u react-dom -u jquery -u es6-promise -u camelot-unchained -u react-draggable -u react-redux -u react-select -u redux -u redux-thunk -t [ envify --NODE_ENV production ]',
           hiddenFromHelp: true,
         },
         lib: {

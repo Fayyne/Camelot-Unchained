@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "target": "es6",
-    "noImplicitAny": true,
+    "noImplicitAny": false,
+    "allowJs": true,
     "removeComments": false,
     "outDir": "./tmp",
     "sourceMap": false,
@@ -30,7 +31,8 @@
     "tmp",
     "dist",
     "publish",
-    "node_modules"
+    "node_modules",
+    "src/third-party"
   ],
   "atom": {
     "rewriteTsconfig": false
