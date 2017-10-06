@@ -6,6 +6,7 @@
 
 import * as React from 'react';
 import * as _ from 'lodash';
+import * as Dragula from 'react-dragula';
 
 import { StyleDeclaration, StyleSheet, css } from 'aphrodite';
 import { events, client } from 'camelot-unchained';
@@ -127,7 +128,9 @@ class InventoryBody extends React.Component<InventoryBodyProps, InventoryBodySta
     this.state = {
       ...base.defaultInventoryBaseState(),
     };
+    this.initDragula();
   }
+
   public render() {
     const ss = StyleSheet.create(defaultInventoryBodyStyles);
     const custom = StyleSheet.create(this.props.styles || {});
@@ -138,20 +141,20 @@ class InventoryBody extends React.Component<InventoryBodyProps, InventoryBodySta
     return (
       <div className={css(ss.inventoryBody, custom.inventoryBody)}>
         {!this.props.graphql.data &&
-          <div className={css(ss.refreshContainer, custom.refreshContainer)}>
-            {!this.props.graphql.loading && <div className={css(ss.refreshTitle, custom.refreshTitle)}>
-              Could not retrieve items. Click to try again.
-            </div>}
-            <div
-              className={css(ss.refreshButton, custom.refreshButton)}
-              onClick={this.refetch}>
-                {this.props.graphql.loading ?
-                  <i className='fa fa-circle-o-notch loading-spin' /> : <i className='fa fa-refresh' />}
-            </div>
+        <div className={css(ss.refreshContainer, custom.refreshContainer)}>
+          {!this.props.graphql.loading && <div className={css(ss.refreshTitle, custom.refreshTitle)}>
+            Could not retrieve items. Click to try again.
+          </div>}
+          <div
+            className={css(ss.refreshButton, custom.refreshButton)}
+            onClick={this.refetch}>
+            {this.props.graphql.loading ?
+              <i className='fa fa-circle-o-notch loading-spin' /> : <i className='fa fa-refresh' />}
           </div>
+        </div>
         }
         <div ref={r => this.bodyRef = r}
-            className={css(ss.inventoryBodyInnerContainer, custom.inventoryBodyInnerContainer)}>
+             className={css(ss.inventoryBodyInnerContainer, custom.inventoryBodyInnerContainer)}>
           <div className={css(ss.inventoryContent, custom.inventoryContent)}>
             {rows}
           </div>
@@ -180,10 +183,10 @@ class InventoryBody extends React.Component<InventoryBodyProps, InventoryBodySta
     client.OnInventoryAdded((item) => {
       const timeNextItemAdded = new Date().getTime();
       if (this.props.visibleComponent === '' &&
-          !this.isFetching &&
-          this.timePrevItemAdded &&
-          timeNextItemAdded - this.timePrevItemAdded > 100
-        ) {
+        !this.isFetching &&
+        this.timePrevItemAdded &&
+        timeNextItemAdded - this.timePrevItemAdded > 100
+      ) {
         this.isFetching = true;
         setTimeout(() => this.refetch(), 200);
       }
@@ -224,6 +227,39 @@ class InventoryBody extends React.Component<InventoryBodyProps, InventoryBodySta
     events.off(this.updateInventoryItemsHandler);
     events.off(this.dropItemHandler);
     window.removeEventListener('resize', this.initializeInventory);
+  }
+
+  private initDragula() {
+    const dragulaOptions = {
+      moves: el => el.className.indexOf('EmptyItem') === -1,
+    };
+    base.setDragula(Dragula(dragulaOptions).on('drop', (el, target, source) => {
+      base.drake.cancel(true);
+      this.swapItems({
+        id: source.dataset.itemId,
+        position: source.dataset.itemPosition,
+      }, {
+        id: target.dataset.itemId,
+        position: target.dataset.itemPosition,
+      });
+    }).on('shadow', (shadow, target, source) => {
+      target.removeChild(shadow);
+      source.appendChild(shadow);
+    }).on('over', (el, target) => {
+      target.classList.add('gu-transit');
+    }).on('out', (el, target) => {
+      target.classList.remove('gu-transit');
+    }));
+  }
+
+  private swapItems(item1: any, item2: any) {
+    const droppedItem = _.find(this.props.inventoryItems, item => item.id === item1.id);
+    const swappingItem = _.find(this.props.inventoryItems, item => item.id === item2.id);
+    base.performItemSwap(droppedItem, item2.position, swappingItem, item1.position).then(
+      () => {
+        this.refetch();
+      },
+    );
   }
 
   private refetch = async () => {

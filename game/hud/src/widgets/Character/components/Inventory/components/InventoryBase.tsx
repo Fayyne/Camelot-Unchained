@@ -6,6 +6,7 @@
 
 import * as React from 'react';
 import * as _ from 'lodash';
+import * as Dragula from 'react-dragula';
 
 import { StyleSheet, css, StyleDeclaration } from 'aphrodite';
 import { GraphQLInjectedProps } from 'camelot-unchained/lib/graphql/react';
@@ -102,6 +103,11 @@ export interface InventoryBaseState {
 }
 
 let stackGroupCounter = 0;
+export let drake: Dragula;
+
+export function setDragula(dragulaApi: Dragula) {
+  drake = dragulaApi;
+}
 
 export function renderSlots(state: InventoryBaseState, props: InventoryBaseProps) {
   const ss = StyleSheet.create(defaultInventoryBaseStyle);
@@ -152,7 +158,7 @@ export function createRowElementsForCraftingItems(state: InventoryBaseState, ite
       ++slotIndex;
     }
     rows.push((
-      <InventoryRow key={rowIndex} items={rowItems} />
+      <InventoryRow key={rowIndex} items={rowItems} drake={drake} />
     ));
     rowData.push(rowItems);
   }
@@ -211,7 +217,7 @@ export function createRowElements(
     }
 
     rows.push((
-      <InventoryRow equippedItems={props.equippedItems} key={rowIndex} items={rowItems} />
+      <InventoryRow equippedItems={props.equippedItems} key={rowIndex} items={rowItems} drake={drake} />
     ));
     rowData.push(rowItems);
   }
@@ -251,6 +257,13 @@ export function distributeItems(
   }
 }
 
+export function performItemSwap(droppedItem: InventoryItemFragment, droppedPosition: number,
+                                swappingItem: InventoryItemFragment, originalPosition: number) {
+  const moveRequests: webAPI.MoveItemRequest[] = [];
+  moveRequests.push(createMoveItemRequestToInventoryPosition(droppedItem, droppedPosition));
+  moveRequests.push(createMoveItemRequestToInventoryPosition(swappingItem, originalPosition));
+  return webAPI.ItemAPI.BatchMoveItems(webAPI.defaultConfig, client.loginToken, client.shardID, client.characterID, moveRequests);
+}
 // we are not filtering items here, put items based on slot position
 export function distributeItemsNoFilter(slotsData: {
   slotsPerRow: number,

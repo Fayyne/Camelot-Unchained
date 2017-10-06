@@ -6,6 +6,7 @@
 
 import * as React from 'react';
 import * as _ from 'lodash';
+import * as Dragula from 'react-dragula';
 
 import { ql, ContextMenu, Tooltip, events } from 'camelot-unchained';
 import { StyleDeclaration, StyleSheet, css } from 'aphrodite';
@@ -108,6 +109,7 @@ export interface InventorySlotProps {
   item: InventorySlotItemDef & CraftingSlotItemDef;
   itemIndex: number;
   onToggleContainer: (index: number, itemId: string) => void;
+  drake: Dragula;
   equippedItems?: ql.schema.EquippedItem[];
 }
 
@@ -164,39 +166,42 @@ export class InventorySlot extends React.Component<InventorySlotProps, Inventory
     const id = item.stackedItems && item.stackedItems[0] ? item.stackedItems[0].id : item.itemID;
 
     return id ? (
-      <div className={css(ss.InventorySlot, custom.InventorySlot)}>
-        <Tooltip
-          show={this.state.showTooltip}
-          styles={defaultTooltipStyle}
-          content={() =>
-            <TooltipContent
-              item={item.item || item.stackedItems[0]}
-              shouldOnlyShowPrimaryInfo={item.slotType === SlotType.CraftingContainer}
-              instructions={this.props.item.item && this.props.item.item.staticDefinition.gearSlotSets.length > 0 ?
-                'Double click to equip or right click to open context menu' : ''}
-            />
-        }>
-          <ContextMenu
-            onContextMenuContentShow={this.onContextMenuContentShow}
-            onContextMenuContentHide={this.onContextMenuContentHide}
-            content={props => <ContextMenuContent item={item.item || item.stackedItems[0]} contextMenuProps={props} />}
-          >
-            <div
-              className={css(ss.itemContainer, custom.itemContainer)}
-              onClick={usesContainer ? this.onToggleContainer : null}
-              onMouseEnter={this.onMouseEnter}
-              onMouseLeave={this.onMouseLeave}
-              onDoubleClick={this.onEquipItem}>
+        <div className={css(ss.InventorySlot, custom.InventorySlot)} ref={this.dragulaDecorator} data-item-id={item.itemID}
+             data-item-position={item.item.location.inventory ? item.item.location.inventory.position : -1}>
+          <Tooltip
+            show={this.state.showTooltip}
+            styles={defaultTooltipStyle}
+            content={() =>
+              <TooltipContent
+                item={item.item || item.stackedItems[0]}
+                shouldOnlyShowPrimaryInfo={item.slotType === SlotType.CraftingContainer}
+                instructions={this.props.item.item && this.props.item.item.staticDefinition.gearSlotSets.length > 0 ?
+                  'Double click to equip or right click to open context menu' : ''}
+              />
+            }>
+            <ContextMenu
+              onContextMenuContentShow={this.onContextMenuContentShow}
+              onContextMenuContentHide={this.onContextMenuContentHide}
+              content={props => <ContextMenuContent item={item.item || item.stackedItems[0]} contextMenuProps={props} />}
+            >
+              <div
+                className={css(ss.itemContainer, custom.itemContainer)}
+                onClick={usesContainer ? this.onToggleContainer : null}
+                onMouseEnter={this.onMouseEnter}
+                onMouseDown={this.onMouseDown}
+                onMouseUp={this.onMouseUp}
+                onMouseLeave={this.onMouseLeave}
+                onDoubleClick={this.onEquipItem}>
                 {itemComponent}
                 <div className={css(ss.slotOverlay, custom.slotOverlay)} />
-            </div>
-          </ContextMenu>
-        </Tooltip>
-      </div>
-    ) :
-    <div className={css(ss.itemContainer, custom.itemContainer)}>
-      <EmptyItem />
-    </div>;
+              </div>
+            </ContextMenu>
+          </Tooltip>
+        </div>
+      ) :
+      <div className={css(ss.itemContainer, custom.itemContainer)} ref={this.dragulaDecorator}>
+        <EmptyItem />
+      </div>;
   }
 
   public shouldComponentUpdate(nextProps: InventorySlotProps, nextState: InventorySlotState) {
@@ -205,6 +210,12 @@ export class InventorySlot extends React.Component<InventorySlotProps, Inventory
       nextProps.itemIndex !== this.props.itemIndex ||
       !_.isEqual(nextProps.equippedItems, this.props.equippedItems) ||
       !_.isEqual(nextState, this.state);
+  }
+
+  private dragulaDecorator = (componentBackingInstance) => {
+    if (componentBackingInstance) {
+      this.props.drake.containers.push(componentBackingInstance);
+    }
   }
 
   private onToggleContainer = () => {
@@ -225,14 +236,14 @@ export class InventorySlot extends React.Component<InventorySlotProps, Inventory
 
   private onMouseEnter = () => {
     this.mouseOver = true;
-    if (!this.state.contextMenuVisible) {
+    if (!this.state.contextMenuVisible && !this.props.drake.dragging) {
       this.setState({ showTooltip: true });
     }
     if (this.props.item.item && this.props.item.item.staticDefinition.gearSlotSets.length > 0) {
       const { gearSlotSets } = this.props.item.item.staticDefinition;
       if ((gearSlotSets.length === 1 && this.isRightOrLeftItem(gearSlotSets[0].gearSlots as any)) ||
         (this.isRightOrLeftItem(gearSlotSets[0].gearSlots as any) &&
-        this.isRightOrLeftItem(gearSlotSets[1].gearSlots as any))) {
+          this.isRightOrLeftItem(gearSlotSets[1].gearSlots as any))) {
 
         this.rightOrLeftItemAction((gearSlots) => {
           events.fire(eventNames.onHighlightSlots, gearSlots);
@@ -248,6 +259,10 @@ export class InventorySlot extends React.Component<InventorySlotProps, Inventory
     this.setState({ showTooltip: false });
     events.fire(eventNames.onDehighlightSlots);
   }
+
+  private onMouseDown = () => this.onMouseLeave();
+
+  private onMouseUp = () => this.onMouseEnter();
 
   private rightOrLeftItemAction = (action: (gearSlots: ql.schema.GearSlotDefRef[]) => void) => {
     const { gearSlotSets } = this.props.item.item.staticDefinition;
@@ -277,9 +292,9 @@ export class InventorySlot extends React.Component<InventorySlotProps, Inventory
     if (gearSlots.length === 1) {
       const firstGearSlotId = gearSlots[0].id;
       return _.includes(firstGearSlotId.toLowerCase(), 'right') ||
-      _.includes(firstGearSlotId.toLowerCase(), 'left') ||
-      _.includes(firstGearSlotId.toLowerCase(), 'primary') ||
-      _.includes(firstGearSlotId.toLowerCase(), 'secondary');
+        _.includes(firstGearSlotId.toLowerCase(), 'left') ||
+        _.includes(firstGearSlotId.toLowerCase(), 'primary') ||
+        _.includes(firstGearSlotId.toLowerCase(), 'secondary');
     }
     return false;
   }
@@ -288,9 +303,9 @@ export class InventorySlot extends React.Component<InventorySlotProps, Inventory
     if (this.props.item.item && this.props.item.item.staticDefinition.gearSlotSets.length > 0) {
       const { gearSlotSets } = this.props.item.item.staticDefinition;
       if (gearSlotSets.length === 2 &&
-          this.isRightOrLeftItem(gearSlotSets[0].gearSlots as any) &&
-          this.isRightOrLeftItem(gearSlotSets[1].gearSlots as any) ||
-          (gearSlotSets.length === 1 && this.isRightOrLeftItem(gearSlotSets[0].gearSlots as any))) {
+        this.isRightOrLeftItem(gearSlotSets[0].gearSlots as any) &&
+        this.isRightOrLeftItem(gearSlotSets[1].gearSlots as any) ||
+        (gearSlotSets.length === 1 && this.isRightOrLeftItem(gearSlotSets[0].gearSlots as any))) {
 
         this.rightOrLeftItemAction((gearSlots) => {
           const payload: EquipItemCallback = {

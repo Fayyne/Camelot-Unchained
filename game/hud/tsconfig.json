@@ -32,7 +32,8 @@
     "dist",
     "publish",
     "node_modules",
-    "src/third-party"
+    "src/third-party",
+    "build/third-party"
   ],
   "atom": {
     "rewriteTsconfig": false

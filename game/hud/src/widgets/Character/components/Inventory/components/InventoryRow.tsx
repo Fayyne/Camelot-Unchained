@@ -6,6 +6,7 @@
 
 import * as React from 'react';
 import * as _ from 'lodash';
+import * as Dragula from 'react-dragula';
 
 import { StyleDeclaration, StyleSheet, css } from 'aphrodite';
 import { ql } from 'camelot-unchained';
@@ -41,6 +42,7 @@ export interface InventoryRowProps {
   styles?: Partial<InventoryRowStyle>;
   items: InventorySlotItemDef[];
   equippedItems?: ql.schema.EquippedItem[];
+  drake: Dragula;
 }
 
 export interface InventoryRowState {
@@ -66,7 +68,7 @@ export class InventoryRow extends React.Component<InventoryRowProps, InventoryRo
 
     return (
       <div className={css(ss.InventoryRow, custom.InventoryRow)}>
-        <div className={css(ss.row, custom.row)}>
+        <div className={`${css(ss.row, custom.row)} container`}>
           {this.props.items.map((slotDef, index) => (
             <InventorySlot
               key={index}
@@ -76,6 +78,7 @@ export class InventoryRow extends React.Component<InventoryRowProps, InventoryRo
               }}
               item={slotDef}
               itemIndex={index}
+              drake={this.props.drake}
               onToggleContainer={this.toggleContainer}
               equippedItems={this.props.equippedItems}
             />
