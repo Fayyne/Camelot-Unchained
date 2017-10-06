@@ -262,7 +262,8 @@ export function performItemSwap(droppedItem: InventoryItemFragment, droppedPosit
   const moveRequests: webAPI.MoveItemRequest[] = [];
   moveRequests.push(createMoveItemRequestToInventoryPosition(droppedItem, droppedPosition));
   moveRequests.push(createMoveItemRequestToInventoryPosition(swappingItem, originalPosition));
-  return webAPI.ItemAPI.BatchMoveItems(webAPI.defaultConfig, client.loginToken, client.shardID, client.characterID, moveRequests);
+  return webAPI.ItemAPI.BatchMoveItems(webAPI.defaultConfig, client.loginToken,
+    client.shardID, client.characterID, moveRequests);
 }
 // we are not filtering items here, put items based on slot position
 export function distributeItemsNoFilter(slotsData: {
